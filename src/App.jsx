@@ -4,25 +4,25 @@ function App() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Theme State (default to dark)
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   // Form State
   const [formData, setFormData] = useState({
     log_date: new Date().toISOString().split('T')[0],
     category: 'Fitness',
-    duration_minutes: '',
+    duration_minutes: '30',
     notes: ''
   });
 
   const [submitting, setSubmitting] = useState(false);
-
-  // Live Render Backend API URL
   const API_URL = "https://personal-metrics-api.onrender.com/api/logs";
 
-  // Fetch Logs function
   const fetchLogs = () => {
     fetch(API_URL)
       .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch logs from backend");
+        if (!res.ok) throw new Error("Failed to fetch logs");
         return res.json();
       })
       .then(data => {
@@ -30,7 +30,6 @@ function App() {
         setLoading(false);
       })
       .catch(err => {
-        console.error("Error fetching data:", err);
         setError(err.message);
         setLoading(false);
       });
@@ -40,21 +39,21 @@ function App() {
     fetchLogs();
   }, []);
 
-  // Handle Form Input Change
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle Form Submit (POST Request)
+  const handleCategorySelect = (cat) => {
+    setFormData({ ...formData, category: cat });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setSubmitting(true);
 
     fetch(API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         log_date: formData.log_date,
         category: formData.category,
@@ -67,13 +66,7 @@ function App() {
         return res.json();
       })
       .then(() => {
-        // Reset form & reload logs
-        setFormData({
-          log_date: new Date().toISOString().split('T')[0],
-          category: 'Fitness',
-          duration_minutes: '',
-          notes: ''
-        });
+        setFormData(prev => ({ ...prev, notes: '' }));
         fetchLogs();
         setSubmitting(false);
       })
@@ -83,136 +76,152 @@ function App() {
       });
   };
 
+  const handleDelete = (id) => {
+    if (!window.confirm("Delete this log?")) return;
+
+    fetch(`${API_URL}/${id}`, { method: 'DELETE' })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to delete");
+        return res.json();
+      })
+      .then(() => fetchLogs())
+      .catch(err => alert("Error: " + err.message));
+  };
+
+  const categories = ['Fitness', 'Study', 'Coding', 'Gaming', 'Reading'];
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 font-sans">
-      <div className="max-w-2xl mx-auto">
+    <div className={`min-h-screen p-4 font-sans flex justify-center transition-colors duration-200 ${isDarkMode ? 'bg-zinc-950 text-zinc-100' : 'bg-zinc-100 text-zinc-900'}`}>
+      <div className="w-full max-w-md space-y-4">
         
-        {/* Header Section */}
-        <header className="mb-8 text-center border-b border-slate-800 pb-4">
-          <h1 className="text-2xl font-extrabold tracking-wider text-teal-400">
-            PERSONAL METRICS DASHBOARD
-          </h1>
-          <p className="text-slate-400 text-xs mt-1">
-            Live Production Dashboard • Flask + SQLite Backend on Render
-          </p>
+        {/* Header with Theme Toggle */}
+        <header className={`border rounded-2xl p-4 flex justify-between items-center shadow-sm transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+          <div>
+            <h1 className="text-base font-bold">Life Metrics</h1>
+            <p className={`text-[11px] ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Effortless Daily Tracker</p>
+          </div>
+          
+          <button 
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-200 hover:bg-zinc-700' : 'bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-zinc-200'}`}
+          >
+            {isDarkMode ? '☀️ Light' : '🌙 Dark'}
+          </button>
         </header>
 
-        {/* Add Log Form Section */}
-        <div className="bg-slate-900 rounded-xl p-6 shadow-xl border border-slate-800 mb-8">
-          <h2 className="text-lg font-semibold text-teal-300 mb-4">Add New Activity Log</h2>
+        {/* Quick Entry Form */}
+        <div className={`border rounded-2xl p-4 shadow-sm space-y-3 transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+          <h2 className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Quick Add</h2>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            
+            {/* Category Quick Select Pills */}
+            <div>
+              <label className={`block text-[11px] mb-1.5 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Category</label>
+              <div className="flex flex-wrap gap-1.5">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => handleCategorySelect(cat)}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
+                      formData.category === cat 
+                        ? (isDarkMode ? 'bg-zinc-100 text-zinc-950 border-zinc-100 font-semibold' : 'bg-zinc-900 text-zinc-100 border-zinc-900 font-semibold')
+                        : (isDarkMode ? 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-zinc-300')
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Date</label>
+                <label className={`block text-[11px] mb-1 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Date</label>
                 <input 
                   type="date" 
                   name="log_date" 
                   value={formData.log_date} 
                   onChange={handleChange} 
                   required
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-teal-500"
+                  className={`w-full border rounded-xl p-2 text-xs focus:outline-none transition-colors ${isDarkMode ? 'bg-zinc-950 border-zinc-800 text-zinc-200 focus:border-zinc-500' : 'bg-zinc-50 border-zinc-200 text-zinc-800 focus:border-zinc-400'}`}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Category</label>
-                <select 
-                  name="category" 
-                  value={formData.category} 
-                  onChange={handleChange}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-teal-500"
-                >
-                  <option value="Fitness">Fitness</option>
-                  <option value="Study">Study</option>
-                  <option value="Coding">Coding</option>
-                  <option value="Gaming">Gaming</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Duration (Minutes)</label>
+                <label className={`block text-[11px] mb-1 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Duration (Mins)</label>
                 <input 
                   type="number" 
                   name="duration_minutes" 
-                  placeholder="e.g. 45" 
+                  placeholder="30" 
                   value={formData.duration_minutes} 
                   onChange={handleChange} 
                   required
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-teal-500"
+                  className={`w-full border rounded-xl p-2 text-xs focus:outline-none transition-colors ${isDarkMode ? 'bg-zinc-950 border-zinc-800 text-zinc-200 focus:border-zinc-500' : 'bg-zinc-50 border-zinc-200 text-zinc-800 focus:border-zinc-400'}`}
                 />
               </div>
+            </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Notes / Description</label>
-                <input 
-                  type="text" 
-                  name="notes" 
-                  placeholder="e.g. Upper body workout" 
-                  value={formData.notes} 
-                  onChange={handleChange} 
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-teal-500"
-                />
-              </div>
+            <div>
+              <label className={`block text-[11px] mb-1 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Optional Notes</label>
+              <input 
+                type="text" 
+                name="notes" 
+                placeholder="What did you focus on?" 
+                value={formData.notes} 
+                onChange={handleChange} 
+                className={`w-full border rounded-xl p-2 text-xs focus:outline-none transition-colors ${isDarkMode ? 'bg-zinc-950 border-zinc-800 text-zinc-200 focus:border-zinc-500' : 'bg-zinc-50 border-zinc-200 text-zinc-800 focus:border-zinc-400'}`}
+              />
             </div>
 
             <button 
               type="submit" 
               disabled={submitting}
-              className="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold py-2.5 rounded-lg transition-all text-sm shadow-lg shadow-teal-500/20 cursor-pointer"
+              className={`w-full font-semibold py-2.5 rounded-xl transition-all text-xs cursor-pointer shadow-sm ${isDarkMode ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-950' : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-100'}`}
             >
-              {submitting ? "Adding Log..." : "Save Activity Log"}
+              {submitting ? "Saving..." : "+ Save Entry"}
             </button>
           </form>
         </div>
 
-        {/* Activity Logs History Section */}
-        <div className="bg-slate-900 rounded-xl p-6 shadow-xl border border-slate-800">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-teal-300">Activity Logs History</h2>
-            <span className="bg-teal-500/10 text-teal-400 text-xs px-2.5 py-1 rounded-full border border-teal-500/20 font-medium">
-              Live API Connected
-            </span>
-          </div>
+        {/* Recent Logs List */}
+        <div className={`border rounded-2xl p-4 shadow-sm space-y-3 transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+          <h2 className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>History</h2>
 
           {loading ? (
-            <div className="text-center py-8 text-slate-400 animate-pulse text-sm">
-              Fetching records from cloud server...
-            </div>
+            <p className={`text-center text-xs py-6 ${isDarkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>Syncing logs...</p>
           ) : error ? (
-            <div className="text-center py-8 text-red-400 bg-red-950/20 rounded-lg border border-red-900/50 text-sm">
-              Error: {error}
-            </div>
+            <p className="text-center text-red-500 text-xs py-6">Error: {error}</p>
           ) : logs.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 text-sm">
-              No activity logs found. Add one above!
-            </div>
+            <p className={`text-center text-xs py-6 ${isDarkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>No entries recorded yet.</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {logs.map((log) => (
                 <div 
                   key={log.id} 
-                  className="bg-slate-950 p-4 rounded-lg border border-slate-800 hover:border-teal-500/50 transition-all flex justify-between items-center shadow-md"
+                  className={`border rounded-xl p-3 flex justify-between items-center transition-colors ${isDarkMode ? 'bg-zinc-950/50 border-zinc-800/80' : 'bg-zinc-50 border-zinc-200'}`}
                 >
                   <div className="space-y-1">
-                    <div className="flex items-center space-x-3">
-                      <span className="bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider">
-                        {log.category}
-                      </span>
-                      <span className="text-slate-200 text-sm font-medium">
-                        {log.notes || "No notes provided"}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 pl-1">
-                      Date: <span className="text-slate-400">{log.log_date}</span>
-                    </p>
+                    <span className={`border px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide ${isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-zinc-200 border-zinc-300 text-zinc-700'}`}>
+                      {log.category}
+                    </span>
+                    <p className={`text-xs font-medium ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}>{log.notes || "Quick session"}</p>
+                    <span className="text-[10px] text-zinc-500 block">{log.log_date}</span>
                   </div>
                   
-                  <div className="text-right">
-                    <span className="text-lg font-bold text-teal-400">{log.duration_minutes}</span>
-                    <span className="text-[9px] text-slate-500 block uppercase tracking-wider">Mins</span>
+                  <div className="flex items-center space-x-3">
+                    <div className="text-right">
+                      <span className={`text-sm font-bold ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}>{log.duration_minutes}</span>
+                      <span className="text-[9px] text-zinc-500 block font-semibold">MINS</span>
+                    </div>
+                    <button 
+                      onClick={() => handleDelete(log.id)}
+                      className="text-zinc-500 hover:text-red-500 text-xs p-1.5 rounded-lg transition-colors cursor-pointer"
+                      title="Delete"
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
               ))}
@@ -220,14 +229,11 @@ function App() {
           )}
         </div>
 
-        {/* Footer info */}
-        <footer className="text-center mt-6 text-xs text-slate-600">
-          Cyril Jaiswal • Full-Stack Personal Portfolio Project
-        </footer>
-
       </div>
     </div>
   );
 }
+
+App.displayName = "App";
 
 export default App;
