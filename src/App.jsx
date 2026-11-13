@@ -5,7 +5,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Theme State (default to dark)
+  // Theme State
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   // Form State
@@ -90,6 +90,16 @@ function App() {
 
   const categories = ['Fitness', 'Study', 'Coding', 'Gaming', 'Reading'];
 
+  // Calculate total minutes per category for analytics summary
+  const categoryTotals = categories.reduce((acc, cat) => {
+    acc[cat] = logs
+      .filter(log => log.category === cat)
+      .reduce((sum, log) => sum + Number(log.duration_minutes || 0), 0);
+    return acc;
+  }, {});
+
+  const totalMinutesAll = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
+
   return (
     <div className={`min-h-screen p-4 font-sans flex justify-center transition-colors duration-200 ${isDarkMode ? 'bg-zinc-950 text-zinc-100' : 'bg-zinc-100 text-zinc-900'}`}>
       <div className="w-full max-w-md space-y-4">
@@ -108,6 +118,23 @@ function App() {
             {isDarkMode ? '☀️ Light' : '🌙 Dark'}
           </button>
         </header>
+
+        {/* Analytics Summary Widget */}
+        <div className={`border rounded-2xl p-4 shadow-sm space-y-3 transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+          <div className="flex justify-between items-center">
+            <h2 className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Overview</h2>
+            <span className={`text-xs font-bold ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}>Total: {totalMinutesAll} mins</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {categories.map((cat) => (
+              <div key={cat} className={`border rounded-xl p-2.5 text-center ${isDarkMode ? 'bg-zinc-950/50 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+                <span className={`text-[10px] font-semibold block uppercase ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>{cat}</span>
+                <span className={`text-sm font-extrabold mt-0.5 block ${isDarkMode ? 'text-zinc-100' : 'text-zinc-900'}`}>{categoryTotals[cat]}m</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Quick Entry Form */}
         <div className={`border rounded-2xl p-4 shadow-sm space-y-3 transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
