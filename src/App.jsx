@@ -147,6 +147,27 @@ function App() {
 
   const categories = ['Fitness', 'Study', 'Coding', 'Gaming', 'Reading'];
 
+  // Default Daily Goals (in minutes) for each category
+  const dailyGoals = {
+    Fitness: 45,
+    Study: 60,
+    Coding: 90,
+    Gaming: 60,
+    Reading: 30
+  };
+
+  // Today's date string for goal tracking
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Calculate today's minutes per category
+  const todayCategoryMinutes = categories.reduce((acc, cat) => {
+    acc[cat] = logs
+      .filter(log => log.category === cat && log.log_date === todayStr)
+      .reduce((sum, log) => sum + Number(log.duration_minutes || 0), 0);
+    return acc;
+  }, {});
+
+  // Calculate total minutes per category for overall summary
   const categoryTotals = categories.reduce((acc, cat) => {
     acc[cat] = logs
       .filter(log => log.category === cat)
@@ -160,6 +181,7 @@ function App() {
     <div className={`min-h-screen p-4 font-sans flex justify-center transition-colors duration-200 ${isDarkMode ? 'bg-zinc-950 text-zinc-100' : 'bg-zinc-100 text-zinc-900'}`}>
       <div className="w-full max-w-md space-y-4">
         
+        {/* Header with Theme Toggle */}
         <header className={`border rounded-2xl p-4 flex justify-between items-center shadow-sm transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
           <div>
             <h1 className="text-base font-bold">Life Metrics</h1>
@@ -174,8 +196,43 @@ function App() {
           </button>
         </header>
 
+        {/* Real-time Analytics Chart Component */}
         <DashboardAnalytics logs={logs} />
 
+        {/* Daily Goals & Progress Bars Widget */}
+        <div className={`border rounded-2xl p-4 shadow-sm space-y-3 transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+          <div className="flex justify-between items-center">
+            <h2 className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Today's Goals</h2>
+            <span className={`text-[10px] ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>{todayStr}</span>
+          </div>
+
+          <div className="space-y-2.5">
+            {categories.map((cat) => {
+              const current = todayCategoryMinutes[cat] || 0;
+              const goal = dailyGoals[cat];
+              const percentage = Math.min(Math.round((current / goal) * 100), 100);
+
+              return (
+                <div key={cat} className="space-y-1">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className={isDarkMode ? 'text-zinc-300' : 'text-zinc-700'}>{cat}</span>
+                    <span className={isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}>
+                      {current}m / {goal}m ({percentage}%)
+                    </span>
+                  </div>
+                  <div className={`w-full h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-zinc-950' : 'bg-zinc-200'}`}>
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${percentage >= 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Analytics Summary Widget */}
         <div className={`border rounded-2xl p-4 shadow-sm space-y-3 transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
           <div className="flex justify-between items-center">
             <h2 className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Overview</h2>
@@ -192,6 +249,7 @@ function App() {
           </div>
         </div>
 
+        {/* Quick Entry Form */}
         <div className={`border rounded-2xl p-4 shadow-sm space-y-3 transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
           <h2 className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Quick Add</h2>
           
@@ -265,6 +323,7 @@ function App() {
           </form>
         </div>
 
+        {/* Recent Logs List */}
         <div className={`border rounded-2xl p-4 shadow-sm space-y-3 transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
           <h2 className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>History</h2>
 
