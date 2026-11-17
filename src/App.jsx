@@ -42,15 +42,15 @@ function DashboardAnalytics({ logs = [] }) {
           <AreaChart data={displayData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorMinutes" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
-                <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
             <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 12 }} />
             <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
-            <Tooltip 
-              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff' }} 
+            <Tooltip
+              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
             />
             <Area type="monotone" dataKey="minutes" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorMinutes)" />
           </AreaChart>
@@ -145,9 +145,34 @@ function App() {
       .catch(err => alert("Error: " + err.message));
   };
 
-  const categories = ['Fitness', 'Study', 'Coding', 'Gaming', 'Reading'];
+  // CSV Export Handler
+  const handleExportCSV = () => {
+    if (logs.length === 0) {
+      alert("No logs available to export!");
+      return;
+    }
 
-  // Default Daily Goals (in minutes) for each category
+    const headers = ["ID", "Date", "Category", "Duration (Minutes)", "Notes"];
+    const cleanCsvContent = [
+      headers.join(","),
+      ...logs.map(log =>
+        [log.id, log.log_date, `"${log.category}"`, log.duration_minutes, `"${(log.notes || "").replace(/"/g, '""')}"`].join(",")
+      )
+    ].join("\n");
+
+    const blob = new Blob([cleanCsvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `life_metrics_backup_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const categories = ['Fitness', 'Study', 'Coding', 'Gaming', 'Reading'];
+  const quickDurations = [15, 30, 45, 60, 90];
+
   const dailyGoals = {
     Fitness: 45,
     Study: 60,
@@ -156,10 +181,8 @@ function App() {
     Reading: 30
   };
 
-  // Today's date string for goal tracking
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // Calculate today's minutes per category
   const todayCategoryMinutes = categories.reduce((acc, cat) => {
     acc[cat] = logs
       .filter(log => log.category === cat && log.log_date === todayStr)
@@ -167,7 +190,6 @@ function App() {
     return acc;
   }, {});
 
-  // Calculate total minutes per category for overall summary
   const categoryTotals = categories.reduce((acc, cat) => {
     acc[cat] = logs
       .filter(log => log.category === cat)
@@ -180,20 +202,30 @@ function App() {
   return (
     <div className={`min-h-screen p-4 font-sans flex justify-center transition-colors duration-200 ${isDarkMode ? 'bg-zinc-950 text-zinc-100' : 'bg-zinc-100 text-zinc-900'}`}>
       <div className="w-full max-w-md space-y-4">
-        
-        {/* Header with Theme Toggle */}
+
+        {/* Header with Theme Toggle & CSV Export Button */}
         <header className={`border rounded-2xl p-4 flex justify-between items-center shadow-sm transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
           <div>
             <h1 className="text-base font-bold">Life Metrics</h1>
             <p className={`text-[11px] ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Effortless Daily Tracker</p>
           </div>
-          
-          <button 
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-200 hover:bg-zinc-700' : 'bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-zinc-200'}`}
-          >
-            {isDarkMode ? '☀️ Light' : '🌙 Dark'}
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportCSV}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700' : 'bg-zinc-100 border-zinc-300 text-zinc-700 hover:bg-zinc-200'}`}
+              title="Export CSV Backup"
+            >
+              📥 Export
+            </button>
+
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-200 hover:bg-zinc-700' : 'bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-zinc-200'}`}
+            >
+              {isDarkMode ? '☀️' : '🌙'}
+            </button>
+          </div>
         </header>
 
         {/* Real-time Analytics Chart Component */}
@@ -221,7 +253,7 @@ function App() {
                     </span>
                   </div>
                   <div className={`w-full h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-zinc-950' : 'bg-zinc-200'}`}>
-                    <div 
+                    <div
                       className={`h-full rounded-full transition-all duration-500 ${percentage >= 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
                       style={{ width: `${percentage}%` }}
                     ></div>
@@ -249,10 +281,10 @@ function App() {
           </div>
         </div>
 
-        {/* Quick Entry Form */}
+        {/* Quick Entry Form with Quick Duration Buttons */}
         <div className={`border rounded-2xl p-4 shadow-sm space-y-3 transition-colors duration-200 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
           <h2 className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Quick Add</h2>
-          
+
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className={`block text-[11px] mb-1.5 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Category</label>
@@ -262,11 +294,10 @@ function App() {
                     key={cat}
                     type="button"
                     onClick={() => handleCategorySelect(cat)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
-                      formData.category === cat 
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer border ${formData.category === cat
                         ? (isDarkMode ? 'bg-zinc-100 text-zinc-950 border-zinc-100 font-semibold' : 'bg-zinc-900 text-zinc-100 border-zinc-900 font-semibold')
                         : (isDarkMode ? 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-zinc-300')
-                    }`}
+                      }`}
                   >
                     {cat}
                   </button>
@@ -277,11 +308,11 @@ function App() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className={`block text-[11px] mb-1 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Date</label>
-                <input 
-                  type="date" 
-                  name="log_date" 
-                  value={formData.log_date} 
-                  onChange={handleChange} 
+                <input
+                  type="date"
+                  name="log_date"
+                  value={formData.log_date}
+                  onChange={handleChange}
                   required
                   className={`w-full border rounded-xl p-2 text-xs focus:outline-none transition-colors ${isDarkMode ? 'bg-zinc-950 border-zinc-800 text-zinc-200 focus:border-zinc-500' : 'bg-zinc-50 border-zinc-200 text-zinc-800 focus:border-zinc-400'}`}
                 />
@@ -289,32 +320,52 @@ function App() {
 
               <div>
                 <label className={`block text-[11px] mb-1 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Duration (Mins)</label>
-                <input 
-                  type="number" 
-                  name="duration_minutes" 
-                  placeholder="30" 
-                  value={formData.duration_minutes} 
-                  onChange={handleChange} 
+                <input
+                  type="number"
+                  name="duration_minutes"
+                  placeholder="30"
+                  value={formData.duration_minutes}
+                  onChange={handleChange}
                   required
                   className={`w-full border rounded-xl p-2 text-xs focus:outline-none transition-colors ${isDarkMode ? 'bg-zinc-950 border-zinc-800 text-zinc-200 focus:border-zinc-500' : 'bg-zinc-50 border-zinc-200 text-zinc-800 focus:border-zinc-400'}`}
                 />
               </div>
             </div>
 
+            {/* Quick Duration Selection Pills */}
+            <div>
+              <span className={`block text-[10px] mb-1 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Quick Select Minutes:</span>
+              <div className="flex flex-wrap gap-1">
+                {quickDurations.map((mins) => (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, duration_minutes: mins.toString() })}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border cursor-pointer transition-colors ${Number(formData.duration_minutes) === mins
+                        ? (isDarkMode ? 'bg-indigo-600 text-white border-indigo-500 font-semibold' : 'bg-indigo-600 text-white border-indigo-500 font-semibold')
+                        : (isDarkMode ? 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-zinc-300')
+                      }`}
+                  >
+                    +{mins}m
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className={`block text-[11px] mb-1 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Optional Notes</label>
-              <input 
-                type="text" 
-                name="notes" 
-                placeholder="What did you focus on?" 
-                value={formData.notes} 
-                onChange={handleChange} 
+              <input
+                type="text"
+                name="notes"
+                placeholder="What did you focus on?"
+                value={formData.notes}
+                onChange={handleChange}
                 className={`w-full border rounded-xl p-2 text-xs focus:outline-none transition-colors ${isDarkMode ? 'bg-zinc-950 border-zinc-800 text-zinc-200 focus:border-zinc-500' : 'bg-zinc-50 border-zinc-200 text-zinc-800 focus:border-zinc-400'}`}
               />
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={submitting}
               className={`w-full font-semibold py-2.5 rounded-xl transition-all text-xs cursor-pointer shadow-sm ${isDarkMode ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-950' : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-100'}`}
             >
@@ -336,8 +387,8 @@ function App() {
           ) : (
             <div className="space-y-2">
               {logs.map((log) => (
-                <div 
-                  key={log.id} 
+                <div
+                  key={log.id}
                   className={`border rounded-xl p-3 flex justify-between items-center transition-colors ${isDarkMode ? 'bg-zinc-950/50 border-zinc-800/80' : 'bg-zinc-50 border-zinc-200'}`}
                 >
                   <div className="space-y-1">
@@ -347,13 +398,13 @@ function App() {
                     <p className={`text-xs font-medium ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}>{log.notes || "Quick session"}</p>
                     <span className="text-[10px] text-zinc-500 block">{log.log_date}</span>
                   </div>
-                  
+
                   <div className="flex items-center space-x-3">
                     <div className="text-right">
                       <span className={`text-sm font-bold ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}>{log.duration_minutes}</span>
                       <span className="text-[9px] text-zinc-500 block font-semibold">MINS</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleDelete(log.id)}
                       className="text-zinc-500 hover:text-red-500 text-xs p-1.5 rounded-lg transition-colors cursor-pointer"
                       title="Delete"
